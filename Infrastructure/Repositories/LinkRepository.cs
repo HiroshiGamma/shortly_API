@@ -29,6 +29,17 @@ public sealed class LinkRepository : ILinkRepository
     public async Task AddAsync(Link link)
         => await _context.Links.AddAsync(link);
 
+    public async Task<bool> DeleteByIdAsync(long id)
+    {
+        var link = await _context.Links.FirstOrDefaultAsync(l => l.Id == id);
+        if (link is null)
+            return false;
+
+        _context.Links.Remove(link);
+        await _context.SaveChangesAsync();
+        return true;
+    }
+
     public Task SaveChangesAsync()
         => _context.SaveChangesAsync();
 }

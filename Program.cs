@@ -25,6 +25,14 @@ builder.Host.UseSerilog();
 // Registers Razor Pages services
 builder.Services.AddRazorPages();
 
+// Registers API controllers with XML formatters and 406 negotiation support
+builder.Services.AddControllers(options =>
+{
+    options.ReturnHttpNotAcceptable = true;
+    options.RespectBrowserAcceptHeader = true;
+})
+.AddXmlSerializerFormatters();
+
 // Registers the OpenAPI document generator with version 3.1 and API metadata
 builder.Services.AddOpenApi(options =>
 {
@@ -104,6 +112,9 @@ app.MapStaticAssets();
 
 // Maps Razor Pages with static asset support
 app.MapRazorPages().WithStaticAssets();
+
+// Maps REST API controllers under /api
+app.MapControllers();
 
 // Exposes the OpenAPI document at /openapi/v1.json
 app.MapOpenApi();

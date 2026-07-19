@@ -62,6 +62,21 @@ public sealed class LinkService : ILinkService
         return LinkResponse.From(link);
     }
 
+    public async Task<LinkResponse> GetLinkById(long linkId)
+    {
+        _logger.LogDebug("Retrieving link with id: {LinkId}", linkId);
+
+        var link = await _linkRepository.GetByIdAsync(linkId);
+        if (link is null)
+        {
+            _logger.LogWarning("Link not found with id {LinkId}.", linkId);
+            throw new KeyNotFoundException($"No link found with id '{linkId}'.");
+        }
+
+        _logger.LogInformation("Link retrieved successfully with id: {Id} and shortUrl: {ShortUrl}.", link.Id, link.ShortUrl);
+        return LinkResponse.From(link);
+    }
+
     public async Task<List<LinkResponse>> GetAllLinks()
     {
         _logger.LogDebug("Retrieving all links from the database ..");
@@ -78,5 +93,40 @@ public sealed class LinkService : ILinkService
 
         _logger.LogInformation("Retrieved {Count} links for userId: {UserId}.", links.Count, userId);
         return links.Select(LinkResponse.From).ToList();
+    }
+
+    public async Task DeleteLink(long linkId)
+    {
+        _logger.LogDebug("Deleting link with id: {LinkId}", linkId);
+
+        var deleted = await _linkRepository.DeleteByIdAsync(linkId);
+        if (!deleted)
+        {
+            _logger.LogWarning("Delete failed: No link found with id {LinkId}.", linkId);
+            throw new KeyNotFoundException($"No link found with id '{linkId}'.");
+        }
+
+        _logger.LogInformation("Link deleted successfully with id: {LinkId}.", linkId);
+    }
+
+    public async Task<UsageStatisticsResponse> GetStatistics()
+    {
+        _logger.LogDebug("Calculating link usage statistics.");
+
+        var links = await _linkRepository.GetAllAsync();
+        var totalLinks = links.Count;
+        var totalClicks = links.Sum(link => link.Clicks);
+        var mostClicked = links.OrderByDescending(link => link.Clicks).FirstOrDefault();
+
+        var stats = new UsageStatisticsResponse
+        {
+            TotalLinks = totalLinks,
+            TotalClicks = totalClicks,
+            AverageClicksPerLink = totalLinks == 0 ? 0 : Math.Round((double)totalClicks / totalLinks, 2),
+            MostClickedLink = mostClicked is null ? null : LinkResponse.From(mostClicked)
+        };
+
+        _logger.LogInformation("Usage statistics calculated for {Count} links.", totalLinks);
+        return stats;
     }
 }
